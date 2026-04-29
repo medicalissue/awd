@@ -53,7 +53,7 @@ def anchor_pull(
     lam: float,
     *,
     normalize: bool = False,
-    norm_eps: float = 1e-12,
+    max_ratio: float = 100.0,
 ) -> None:
     """Apply the decoupled anchor pull in-place.
 
@@ -95,14 +95,24 @@ def anchor_pull(
         return
     # Direction-normalized form.
     direction = p - anchor
-    # Per-tensor norms; eps guards the very-early step where direction
-    # ≈ 0 (anchor and p coincide at init for ema/polyak/window).
-    dir_norm = direction.norm()
-    if dir_norm.item() < norm_eps:
+    dir_norm_t = direction.norm()
+    dir_norm = dir_norm_t.item()
+    # Step 1 of training has anchor == p exactly (lazy clone), so
+    # direction = 0 and `p_norm / dir_norm` would be nan/inf. Skip
+    # cleanly — the next step will see a non-zero direction once the
+    # EMA buffer starts trailing the trainee.
+    if dir_norm == 0.0:
         return
-    p_norm = p.norm()
-    # Effective shrink: λ·‖p‖, applied along (p−anchor) unit vector.
-    coef = lr * lam * (p_norm / dir_norm).item()
+    p_norm = p.norm().item()
+    # Effective shrink: λ·‖p‖, applied along (p−anchor)/‖·‖. We cap
+    # the per-tensor ratio ‖p‖/‖p−anchor‖ at `max_ratio` so a freshly
+    # initialized anchor (very small dir_norm in fp32 round-off) can't
+    # blow up the step. With lr=0.1, λ=5e-4, max_ratio=100 the
+    # effective shrink is ≤ 5e-3 per step — safe upper bound.
+    ratio = p_norm / dir_norm
+    if ratio > max_ratio:
+        ratio = max_ratio
+    coef = lr * lam * ratio
     p.add_(direction, alpha=-coef)
 
 
