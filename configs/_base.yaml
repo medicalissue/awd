@@ -36,7 +36,7 @@ batch_size: 128
 # bf16 AMP on A10G/L4/A100/H100 has fp32 dynamic range — no GradScaler.
 use_amp: true
 amp_dtype: bfloat16
-compile: false                    # WRN-28x10 compile gain ≈ 5%; off for repro
+compile: true                     # ~25-30% steady-state speedup on A10G/L4
 clip_grad: null
 seed: 42
 auto_resume: true

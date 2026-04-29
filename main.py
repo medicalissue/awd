@@ -136,21 +136,22 @@ def get_args():
 
 
 def seed_everything(seed: int, rank: int = 0) -> None:
-    """Pin all RNGs we touch.
+    """Pin RNGs without forcing cuDNN determinism.
 
-    Per-rank offset so DataLoader workers across DDP ranks see different
-    streams (required for non-trivial shuffling). Set deterministic
-    cuDNN — slower, but the 4-cell comparison hinges on shared init.
+    Per-rank offset so DataLoader workers across ranks see different
+    streams. We do NOT enable cudnn.deterministic — it disables a
+    bunch of fast conv kernels and ~halves throughput on A10G/L4. The
+    4-cell comparison is robust to nondeterminism at the kernel level
+    (the seed pins data shuffling + init, which is what dominates the
+    paired-cell delta we care about). Across 3 seeds we still get a
+    valid std estimate for the headline numbers.
     """
     s = seed + rank
     random.seed(s)
     np.random.seed(s)
     torch.manual_seed(s)
     torch.cuda.manual_seed_all(s)
-    # Deterministic conv kernels. Skipped for AMP because float16 conv
-    # kernels are more limited under deterministic mode.
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
 
 
 # ── Train / eval ──────────────────────────────────────────────────────
