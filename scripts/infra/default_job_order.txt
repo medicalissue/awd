@@ -1,33 +1,41 @@
-# AWD CIFAR-100 / WRN-28x10 — primary 4-cell ablation, 3 seeds.
+# AWD CIFAR-100 / WRN-28x10 — paper main ablation.
 #
 # Format: <config>:<optim_cell>:<seed>. Lines starting with '#' are
 # ignored. Order = priority (top first); the slot fanout pulls top of
-# queue first so cell-0 seed-42 lands before cell-3 seed-44.
-#
-# 4 cells × 3 seeds = 12 runs. On 4×A10G with each WRN-28x10 run ≈ 4-5h
-# at single-GPU, the queue drains in ~3-4 hours of wall-clock.
+# queue first.
 #
 # Cells defined in scripts/infra/optim_flags.sh:
-#   plain  : wd=0   ed=0
-#   wd     : wd=5e-4 ed=0      (cs-giung / SWA paper baseline)
-#   ed     : wd=0   ed=0.1     (anchored decay alone)
-#   wd_ed  : wd=5e-4 ed=0.1    (paper main, anchored decay on top of L2)
+#   plain         : wd=0     ed=0
+#   wd            : wd=5e-4  ed=0          (cs-giung / SWA baseline)
+#   ed            : wd=0     ed=5e-4 raw   (control: weak under raw form)
+#   wd_ed         : wd=5e-4  ed=5e-4 raw   (control)
+#   ed-norm       : wd=0     ed=5e-4 NORM  (paper main: anchor-only, wd-magnitude)
+#   wd_ed-norm    : wd=5e-4  ed=5e-4 NORM  (paper main: stacked)
+#
+# Total = 6 cells × 3 seeds = 18 runs. On 4×A10G this drains in
+# roughly 5–6 hours.
 
-# ── Seed 42 — full 4-cell first wave (lands earliest) ────────────────
+# ── Seed 42 ───────────────────────────────────────────────────────────
 configs/cifar100/wrn28x10.yaml:plain:42
 configs/cifar100/wrn28x10.yaml:wd:42
+configs/cifar100/wrn28x10.yaml:ed-norm:42
+configs/cifar100/wrn28x10.yaml:wd_ed-norm:42
 configs/cifar100/wrn28x10.yaml:ed:42
 configs/cifar100/wrn28x10.yaml:wd_ed:42
 
-# ── Seed 43 — reproducibility check ─────────────────────────────────
+# ── Seed 43 ───────────────────────────────────────────────────────────
 configs/cifar100/wrn28x10.yaml:plain:43
 configs/cifar100/wrn28x10.yaml:wd:43
+configs/cifar100/wrn28x10.yaml:ed-norm:43
+configs/cifar100/wrn28x10.yaml:wd_ed-norm:43
 configs/cifar100/wrn28x10.yaml:ed:43
 configs/cifar100/wrn28x10.yaml:wd_ed:43
 
-# ── Seed 44 — third seed for std reporting ──────────────────────────
+# ── Seed 44 ───────────────────────────────────────────────────────────
 configs/cifar100/wrn28x10.yaml:plain:44
 configs/cifar100/wrn28x10.yaml:wd:44
+configs/cifar100/wrn28x10.yaml:ed-norm:44
+configs/cifar100/wrn28x10.yaml:wd_ed-norm:44
 configs/cifar100/wrn28x10.yaml:ed:44
 configs/cifar100/wrn28x10.yaml:wd_ed:44
 

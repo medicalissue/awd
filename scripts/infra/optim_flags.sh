@@ -47,6 +47,26 @@ optim_flags() {
         wd_ed-polyak)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 5e-4 --anchor polyak" ;;
         wd_ed-window)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 5e-4 --anchor window --window 16" ;;
 
+        # ── Direction-normalized ed: same λ scale as wd (paper main) ─
+        # ed-norm pull magnitude is ‖θ‖ (matched to wd) rather than
+        # ‖θ−anchor‖, so the same λ_ed=5e-4 produces wd-comparable
+        # force per step. Cleaner ablation: only the anchor target
+        # changes between cells.
+        ed-norm)
+            printf '%s' "--optimizer sgd --weight_decay 0.0 --ed_lambda 5e-4 --ed_normalize true --anchor ema"
+            ;;
+        wd_ed-norm)
+            printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 5e-4 --ed_normalize true --anchor ema"
+            ;;
+        # λ_ed sweep on the normalized form (paper sensitivity table).
+        ed-norm-l1e4)  printf '%s' "--optimizer sgd --weight_decay 0.0 --ed_lambda 1e-4 --ed_normalize true --anchor ema" ;;
+        ed-norm-l3e4)  printf '%s' "--optimizer sgd --weight_decay 0.0 --ed_lambda 3e-4 --ed_normalize true --anchor ema" ;;
+        ed-norm-l1e3)  printf '%s' "--optimizer sgd --weight_decay 0.0 --ed_lambda 1e-3 --ed_normalize true --anchor ema" ;;
+        ed-norm-l3e3)  printf '%s' "--optimizer sgd --weight_decay 0.0 --ed_lambda 3e-3 --ed_normalize true --anchor ema" ;;
+        wd_ed-norm-l1e4) printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 1e-4 --ed_normalize true --anchor ema" ;;
+        wd_ed-norm-l3e4) printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 3e-4 --ed_normalize true --anchor ema" ;;
+        wd_ed-norm-l1e3) printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 1e-3 --ed_normalize true --anchor ema" ;;
+
         # ── AdamE (ViT lane) — kept for the secondary table ─────────
         adamw)
             printf '%s' "--optimizer adamw --weight_decay 0.05"

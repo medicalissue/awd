@@ -87,6 +87,9 @@ def get_args():
     p.add_argument("--ed_lambda", type=float, default=0.0,
                    help="Anchored-decay strength λ_ed. 0 disables. With "
                         "anchor=ema this is the AdamE main effect.")
+    p.add_argument("--ed_normalize", type=str2bool, default=False,
+                   help="Direction-normalized ed: pull magnitude is ‖θ‖ "
+                        "(matched to wd) rather than ‖θ−anchor‖.")
     p.add_argument("--anchor", type=str, default="ema",
                    choices=["origin", "init", "ema", "polyak", "window"])
     p.add_argument("--ema_decay", type=float, default=0.9999,

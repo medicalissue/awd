@@ -45,20 +45,65 @@ def init_anchor_state(state: dict, p: torch.Tensor, kind: str, window: int) -> N
 
 
 @torch.no_grad()
-def anchor_pull(p: torch.Tensor, state: dict, kind: str, lr: float, lam: float) -> None:
-    """Apply the decoupled anchor pull in-place: p ← p − lr·λ·(p − θ_anchor).
+def anchor_pull(
+    p: torch.Tensor,
+    state: dict,
+    kind: str,
+    lr: float,
+    lam: float,
+    *,
+    normalize: bool = False,
+    norm_eps: float = 1e-12,
+) -> None:
+    """Apply the decoupled anchor pull in-place.
 
-    For kind='origin' this collapses to p ← (1 − lr·λ)·p (≡ AdamW WD).
-    For other kinds, p ← (1 − lr·λ)·p + lr·λ·θ_anchor.
-    No-op when λ == 0.
+    Two modes, controlled by ``normalize``:
+
+    Default (normalize=False), magnitude follows ``θ − anchor``:
+        p ← p − lr·λ·(p − θ_anchor)
+        For kind='origin' this collapses to p ← (1 − lr·λ)·p (≡ wd).
+        For other kinds, ``λ‖θ−anchor‖`` is the effective force; this
+        is small whenever θ is near its anchor (typical for EMA where
+        ‖θ−θ_EMA‖ ≪ ‖θ‖), so the same λ that produces meaningful wd
+        produces near-zero ed.
+
+    normalize=True, magnitude follows ``‖θ‖`` (matched to wd):
+        u = (p − θ_anchor) / ‖p − θ_anchor‖
+        p ← p − lr·λ·‖p‖·u
+        Direction comes from the anchor; magnitude is ‖p‖ — the same
+        as wd's `λθ` formulation. Picks anchor selection apart from
+        decay strength so a single λ scale is comparable across
+        anchors.
+
+    For kind='origin' the normalized form coincides with the default
+    (the unit vector toward 0 is θ̂ = θ/‖θ‖, and ‖θ−0‖ = ‖θ‖), so we
+    never need a separate origin path.
+
+    Per-tensor norm so layer-wise wd scaling (BN scale ≈ 1, conv
+    kernel ≈ 0.1, FC ≈ 0.05, etc.) is preserved — matches torch's wd
+    behavior layer for layer.
     """
     if lam == 0.0:
         return
     if kind == "origin":
+        # Unchanged regardless of `normalize` — see docstring.
         p.mul_(1.0 - lr * lam)
         return
     anchor = state["anchor"]
-    p.mul_(1.0 - lr * lam).add_(anchor, alpha=lr * lam)
+    if not normalize:
+        p.mul_(1.0 - lr * lam).add_(anchor, alpha=lr * lam)
+        return
+    # Direction-normalized form.
+    direction = p - anchor
+    # Per-tensor norms; eps guards the very-early step where direction
+    # ≈ 0 (anchor and p coincide at init for ema/polyak/window).
+    dir_norm = direction.norm()
+    if dir_norm.item() < norm_eps:
+        return
+    p_norm = p.norm()
+    # Effective shrink: λ·‖p‖, applied along (p−anchor) unit vector.
+    coef = lr * lam * (p_norm / dir_norm).item()
+    p.add_(direction, alpha=-coef)
 
 
 @torch.no_grad()

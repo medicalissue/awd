@@ -98,6 +98,13 @@ class AnchoredSGD(Optimizer):
         (applied as a direct anchor pull on θ — that's the framework's
         defining choice). When >0 the anchor specified by ``anchor``
         (default 'ema') is maintained.
+    ed_normalize : bool
+        If True, the ed pull uses the direction-normalized form
+        ``-λ·‖θ‖·(θ−anchor)/‖θ−anchor‖`` so the ed strength is
+        comparable to wd at the same λ (per-tensor magnitudes match
+        wd's `λθ`). If False, uses the raw ``-λ·(θ−anchor)`` form,
+        which is much weaker for ema-like anchors where
+        ‖θ−anchor‖ ≪ ‖θ‖.
     anchor : str
         One of awd.anchors.VALID_ANCHORS. Only consulted when ed_lambda
         > 0; ignored otherwise.
@@ -116,6 +123,7 @@ class AnchoredSGD(Optimizer):
         weight_decay: float = 0.0,
         weight_decay_form: str = "coupled",
         ed_lambda: float = 0.0,
+        ed_normalize: bool = False,
         anchor: str = "ema",
         ema_decay: float = 0.9999,
         window: int = 16,
@@ -146,6 +154,7 @@ class AnchoredSGD(Optimizer):
             weight_decay=weight_decay,
             weight_decay_form=weight_decay_form,
             ed_lambda=ed_lambda,
+            ed_normalize=ed_normalize,
             anchor=anchor,
             ema_decay=ema_decay,
             window=window,
@@ -166,6 +175,7 @@ class AnchoredSGD(Optimizer):
             wd = group["weight_decay"]
             wd_form = group["weight_decay_form"]
             ed = group["ed_lambda"]
+            ed_norm = group.get("ed_normalize", False)
             anchor_kind = group["anchor"]
             ema_decay = group["ema_decay"]
             window = group["window"]
@@ -199,7 +209,8 @@ class AnchoredSGD(Optimizer):
                 if wd != 0.0 and wd_form == "decoupled":
                     anchor_pull(p, state, "origin", lr=lr, lam=wd)
                 if need_anchor:
-                    anchor_pull(p, state, anchor_kind, lr=lr, lam=ed)
+                    anchor_pull(p, state, anchor_kind, lr=lr, lam=ed,
+                                normalize=ed_norm)
 
                 # 2) SGD step on the (possibly wd-augmented) gradient.
                 if momentum > 0.0:
@@ -383,6 +394,7 @@ def build_optimizer(model: torch.nn.Module, args) -> Optimizer:
     lr = float(args.lr)
     wd = float(getattr(args, "weight_decay", 0.0))
     ed = float(getattr(args, "ed_lambda", 0.0))
+    ed_normalize = bool(getattr(args, "ed_normalize", False))
     anchor = getattr(args, "anchor", "ema")
     ema_decay = float(getattr(args, "ema_decay", 0.9999))
     window = int(getattr(args, "window", 16))
@@ -397,6 +409,7 @@ def build_optimizer(model: torch.nn.Module, args) -> Optimizer:
                 "weight_decay": wd,
                 "weight_decay_form": wd_form,
                 "ed_lambda": ed,
+                "ed_normalize": ed_normalize,
                 "anchor": anchor,
                 "ema_decay": ema_decay,
                 "window": window,
@@ -406,6 +419,7 @@ def build_optimizer(model: torch.nn.Module, args) -> Optimizer:
                 "weight_decay": 0.0,
                 "weight_decay_form": wd_form,
                 "ed_lambda": 0.0,
+                "ed_normalize": ed_normalize,
                 "anchor": "origin",
                 "ema_decay": ema_decay,
                 "window": window,
@@ -414,7 +428,7 @@ def build_optimizer(model: torch.nn.Module, args) -> Optimizer:
         return AnchoredSGD(
             param_groups, lr=lr, momentum=momentum, nesterov=nesterov,
             weight_decay=wd, weight_decay_form=wd_form,
-            ed_lambda=ed, anchor=anchor,
+            ed_lambda=ed, ed_normalize=ed_normalize, anchor=anchor,
             ema_decay=ema_decay, window=window,
         )
 
