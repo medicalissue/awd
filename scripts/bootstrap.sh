@@ -48,7 +48,12 @@ echo "[bootstrap] $(date -u +%Y-%m-%dT%H:%M:%SZ) starting on $(hostname)"
 # Optional pre-built venv tarball. If unset, we pip-install the small
 # CIFAR stack into the system Python (~2 minutes on a DLBase AMI).
 : "${VENV_S3_URL:=}"
-: "${VENV_ROOT:=/opt/awd-venv}"
+# The pre-built venv tarball (NELU-style) was packed with bin/activate
+# pointing at /opt/nelu-venv. Renaming the directory breaks PATH inside
+# the activate script, so we keep the original VENV_ROOT regardless of
+# project naming. Override only if you've baked a tarball at a
+# different prefix.
+: "${VENV_ROOT:=/opt/nelu-venv}"
 : "${DATA_MOUNT:=/data/cifar}"
 export AWS_DEFAULT_REGION
 
