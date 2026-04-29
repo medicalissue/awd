@@ -1,0 +1,19 @@
+# Smoke-test config: 2 epochs × 4 batches/epoch on real CIFAR-100,
+# WRN-16-8 (small enough for CPU). Validates: optimizer factory,
+# 4-cell wd/ed toggling, EMA-eval pipeline, BN re-estimate, resume.
+include: ../_base.yaml
+
+model: wrn_16_8
+batch_size: 32
+epochs: 2
+warmup_epochs: 0
+num_workers: 0
+auto_resume: false
+save_ckpt: true
+limit_train_batches: 4
+
+# CPU/MPS smoke test: turn off AMP and compile.
+use_amp: false
+compile: false
+# Make BN re-estimate cheap during the smoke test.
+bn_reestimate_batches: 4

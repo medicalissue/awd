@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+.env.*
+!.env.example
+
+# Run artifacts
+data/
+logs/
+runs/
+checkpoints/
+wandb/
+*.pth
+*.pth.tar
+
+# Editor
+.DS_Store
+.idea/
+.vscode/

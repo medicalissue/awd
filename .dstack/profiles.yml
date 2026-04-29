@@ -1,0 +1,21 @@
+# dstack profiles for the AWD spot campaign.
+#
+# `gpu-spot-usw2` pins runs to AWS us-west-2 spot capacity. CIFAR
+# experiments fit on a single A10G/L4 (g5/g6.xlarge). The retry block
+# keeps the run alive across (a) initial no-capacity, (b) spot
+# preemption during run, (c) transient non-zero exits, for up to 24 h
+# of wall time. The orchestrator treats SIGTERM as a clean pause point
+# — checkpoint is already on S3 — so retry just re-enters the queue
+# and resumes from the latest checkpoint.
+
+profiles:
+  - name: gpu-spot-usw2
+    default: true
+    backends: [aws]
+    regions: [us-west-2]
+    availability_zones: [us-west-2d, us-west-2c, us-west-2b, us-west-2a]
+    spot_policy: spot
+    max_duration: 24h
+    retry:
+      on_events: [no-capacity, interruption, error]
+      duration: 24h

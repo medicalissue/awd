@@ -1,0 +1,50 @@
+# AWD CIFAR-100 / WRN-28x10 — primary 4-cell ablation, 3 seeds.
+#
+# Format: <config>:<optim_cell>:<seed>. Lines starting with '#' are
+# ignored. Order = priority (top first); the slot fanout pulls top of
+# queue first so cell-0 seed-42 lands before cell-3 seed-44.
+#
+# 4 cells × 3 seeds = 12 runs. On 4×A10G with each WRN-28x10 run ≈ 4-5h
+# at single-GPU, the queue drains in ~3-4 hours of wall-clock.
+#
+# Cells defined in scripts/infra/optim_flags.sh:
+#   plain  : wd=0   ed=0
+#   wd     : wd=5e-4 ed=0      (cs-giung / SWA paper baseline)
+#   ed     : wd=0   ed=0.1     (anchored decay alone)
+#   wd_ed  : wd=5e-4 ed=0.1    (paper main, anchored decay on top of L2)
+
+# ── Seed 42 — full 4-cell first wave (lands earliest) ────────────────
+configs/cifar100/wrn28x10.yaml:plain:42
+configs/cifar100/wrn28x10.yaml:wd:42
+configs/cifar100/wrn28x10.yaml:ed:42
+configs/cifar100/wrn28x10.yaml:wd_ed:42
+
+# ── Seed 43 — reproducibility check ─────────────────────────────────
+configs/cifar100/wrn28x10.yaml:plain:43
+configs/cifar100/wrn28x10.yaml:wd:43
+configs/cifar100/wrn28x10.yaml:ed:43
+configs/cifar100/wrn28x10.yaml:wd_ed:43
+
+# ── Seed 44 — third seed for std reporting ──────────────────────────
+configs/cifar100/wrn28x10.yaml:plain:44
+configs/cifar100/wrn28x10.yaml:wd:44
+configs/cifar100/wrn28x10.yaml:ed:44
+configs/cifar100/wrn28x10.yaml:wd_ed:44
+
+# ── (Optional follow-ups; comment in once main 4-cell is done) ──────
+# # λ_ed sweep on the wd_ed cell, seed 42 only — phase-2 sensitivity.
+# configs/cifar100/wrn28x10.yaml:wd_ed-l001:42
+# configs/cifar100/wrn28x10.yaml:wd_ed-l003:42
+# configs/cifar100/wrn28x10.yaml:wd_ed-l030:42
+# configs/cifar100/wrn28x10.yaml:wd_ed-l100:42
+#
+# # Anchor alternative on the wd_ed cell, seed 42.
+# configs/cifar100/wrn28x10.yaml:wd_ed-init:42
+# configs/cifar100/wrn28x10.yaml:wd_ed-polyak:42
+# configs/cifar100/wrn28x10.yaml:wd_ed-window:42
+#
+# # ResNet-20 mirror (small-model reproducibility row).
+# configs/cifar100/resnet20.yaml:plain:42
+# configs/cifar100/resnet20.yaml:wd:42
+# configs/cifar100/resnet20.yaml:ed:42
+# configs/cifar100/resnet20.yaml:wd_ed:42

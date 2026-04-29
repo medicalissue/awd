@@ -1,0 +1,49 @@
+# Shared defaults for the AWD CIFAR campaign — cs-giung/swa recipe.
+#
+# Single source of truth for "everything except (model, optimizer cell)"
+# so the 4-cell {plain, wd, ed, wd+ed} comparison stays controlled.
+
+# ── Data ──────────────────────────────────────────────────────────
+# torchvision downloads on first run and caches under data_path.
+data_path: /data/cifar
+data_set: cifar100
+nb_classes: 100
+num_workers: 4
+pin_mem: true
+valid_size: 5000          # cs-giung: 45000 train / 5000 valid / 10000 test
+
+# ── Optimizer (SGD-Nesterov, cs-giung baseline) ───────────────────
+optimizer: sgd
+lr: 0.1
+min_lr: 0.0
+momentum: 0.9
+nesterov: true
+# wd and ed are toggled per-cell in optim_flags.sh — defaults match
+# the SWA paper's baseline (wd=5e-4, ed=0).
+weight_decay: 5.0e-4
+weight_decay_form: coupled        # match torch SGD + SWA paper baseline
+ed_lambda: 0.0
+anchor: ema
+ema_decay: 0.9999                 # standard, used by both anchor + eval EMA
+window: 16
+
+# ── Schedule ──────────────────────────────────────────────────────
+epochs: 200
+warmup_epochs: 5
+batch_size: 128
+
+# ── Runtime ───────────────────────────────────────────────────────
+# bf16 AMP on A10G/L4/A100/H100 has fp32 dynamic range — no GradScaler.
+use_amp: true
+amp_dtype: bfloat16
+compile: false                    # WRN-28x10 compile gain ≈ 5%; off for repro
+clip_grad: null
+seed: 42
+auto_resume: true
+save_ckpt: true
+save_ckpt_freq: 1
+save_ckpt_num: 3
+
+# ── Eval EMA ──────────────────────────────────────────────────────
+eval_ema: true
+bn_reestimate_batches: 0          # 0 → full train sweep (cs-giung style)

@@ -1,0 +1,11 @@
+# CIFAR-100 / WRN-28x10 — cs-giung/swa baseline recipe.
+# This is the headline config. Per-cell wd / ed toggles come from
+# scripts/infra/optim_flags.sh (plain / wd / ed / wd_ed).
+include: ../_base.yaml
+
+model: wrn_28_10
+batch_size: 128
+epochs: 200
+warmup_epochs: 5
+lr: 0.1
+weight_decay: 5.0e-4

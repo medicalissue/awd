@@ -1,0 +1,41 @@
+# One AWD worker. A worker VM boots once, runs through the S3 job
+# queue until every experiment has a completion sentinel, and then
+# self-terminates. Submit multiple copies (different --name) to run
+# workers in parallel.
+#
+# Launch example:
+#   source .env
+#   dstack apply -f .dstack/worker.dstack.yml -n awd-worker-1 -y -d
+#
+# Or use scripts/launch_workers.sh for N workers.
+#
+# CIFAR is small enough that we let torchvision download into the
+# container's local /data/cifar (sub-second after first job). No EBS
+# snapshot required — keeps the launch surface minimal vs DyF/NELU.
+
+type: task
+name: awd-worker
+image: nvcr.io/nvidia/pytorch:24.08-py3
+
+repos:
+  - .:/workspace
+working_dir: /workspace
+
+resources:
+  # Single A10G/L4 fits CIFAR-100 / ResNet-18 + WRN-28-10 with room.
+  gpu: A10G:1
+  shm_size: 16GB
+  disk: 64GB
+
+env:
+  - CKPT_BUCKET=s3://awd-checkpoints
+  - AWS_DEFAULT_REGION=us-west-2
+  - WANDB_PROJECT=awd
+  - WANDB_ENTITY
+  - WANDB_API_KEY
+
+commands:
+  # bootstrap.sh installs the small deltas the NGC base doesn't ship
+  # (torchvision is already in NGC; awscli + wandb + tensorboard are
+  # the real adds), then exec's orchestrate.sh.
+  - bash scripts/bootstrap.sh
