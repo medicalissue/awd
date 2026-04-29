@@ -26,22 +26,26 @@ optim_flags() {
             printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.0"
             ;;
         ed)
-            printf '%s' "--optimizer sgd --weight_decay 0.0 --ed_lambda 0.1 --anchor ema"
+            # λ_ed = 5e-4 (≡ wd magnitude) — early-training EMA anchor is
+            # near θ_0, so the ed pull behaves like wd at that scale.
+            # Picking λ_ed = λ_wd makes the four cells "same total
+            # decay strength, different anchor source".
+            printf '%s' "--optimizer sgd --weight_decay 0.0 --ed_lambda 5e-4 --anchor ema"
             ;;
         wd_ed)
-            printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.1 --anchor ema"
+            printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 5e-4 --anchor ema"
             ;;
 
         # ── λ_ed sensitivity sweep (anchor=ema, wd=5e-4) ────────────
-        wd_ed-l001)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.01 --anchor ema" ;;
-        wd_ed-l003)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.03 --anchor ema" ;;
-        wd_ed-l030)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.30 --anchor ema" ;;
-        wd_ed-l100)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 1.00 --anchor ema" ;;
+        wd_ed-l1e4)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 1e-4 --anchor ema" ;;
+        wd_ed-l3e4)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 3e-4 --anchor ema" ;;
+        wd_ed-l1e3)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 1e-3 --anchor ema" ;;
+        wd_ed-l3e3)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 3e-3 --anchor ema" ;;
 
-        # ── Anchor alternatives at the chosen λ_ed (default 0.1) ────
-        wd_ed-init)    printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.1 --anchor init" ;;
-        wd_ed-polyak)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.1 --anchor polyak" ;;
-        wd_ed-window)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 0.1 --anchor window --window 16" ;;
+        # ── Anchor alternatives at the chosen λ_ed = 5e-4 ───────────
+        wd_ed-init)    printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 5e-4 --anchor init" ;;
+        wd_ed-polyak)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 5e-4 --anchor polyak" ;;
+        wd_ed-window)  printf '%s' "--optimizer sgd --weight_decay 5e-4 --ed_lambda 5e-4 --anchor window --window 16" ;;
 
         # ── AdamE (ViT lane) — kept for the secondary table ─────────
         adamw)
